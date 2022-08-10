@@ -1,0 +1,15 @@
+{
+    "id": "422cf0e3-b444-4dff-95ad-70c4ca05c151",
+    "version": "0.0.1",
+    "requiredApiVersion": "^1.4.0",
+    "iconFile": "icon.png",
+    "author": {
+        "name": "sangyul cha",
+        "homepage": "https://github.com/SangyulCha",
+        "support": "https://github.com/SangyulCha"
+    },
+    "name": "BPC",
+    "nameSlug": "bpc",
+    "classFile": "BpcApp.ts",
+    "description": "connecting bot from botpress to rocket.chat"
+}
