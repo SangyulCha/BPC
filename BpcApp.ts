@@ -20,14 +20,17 @@ export class BpcApp extends App implements IPostMessageSent {
         super(info, logger, accessors);
     }
 
-    public async createMessage(app: IApp, read: IRead, modify: IModify, message, room: IRoom, bot: string) {
+    public async createMessage(app: IApp, read: IRead, modify: IModify, message, room: IRoom, threadId, bot: string) {
         if (!message) {
             return;
         }
         const sender = await read.getUserReader().getByUsername(bot);
         const msg = modify.getCreator().startMessage().setRoom(room).setSender(sender);
-        msg.setText("I'm a bot")
-        msg.addAttachment({ imageUrl: "https://picsum.photos/200/300" })
+        if (threadId) {
+            msg.setThreadId(threadId);
+        };
+        msg.setText("I'm a bot");
+        msg.addAttachment({ imageUrl: "https://picsum.photos/200/300" });
         return new Promise(async (resolve) => {
             modify.getCreator().finish(msg)
                 .then((result) => resolve(result))
@@ -36,7 +39,9 @@ export class BpcApp extends App implements IPostMessageSent {
     }
 
     public async executePostMessageSent(message: IMessage, read: IRead, http: IHttp, persistence: IPersistence, modify: IModify): Promise<void> {
-        const { text, room, sender } = message;
+        const { text, room, sender, id } = message;
+        this.getLogger().info(`this is the roomid: ${room.id}`);
+        this.getLogger().info(`this is the messageId(=threadId): ${id}`);
         this.getLogger().info(`this is the room type: ${JSON.stringify(room.type)}`);
         if (!text) {
             return;
@@ -44,12 +49,12 @@ export class BpcApp extends App implements IPostMessageSent {
 
 
         const botUsername = await read.getEnvironmentReader().getSettings().getValueById(AppSetting.BotpressBotUsername);
-        this.getLogger().info(`this is the bot name: ${botUsername}`)
-        this.getLogger().info(`this is the sender.username ${sender.username}`)
+        this.getLogger().info(`this is the bot name: ${botUsername}`);
+        this.getLogger().info(`this is the sender.username ${sender.username}`);
         if (sender.username === botUsername) {
             return;
         }
-        await this.createMessage(this, read, modify, message, room, botUsername);
+        await this.createMessage(this, read, modify, message, room, id, botUsername);
     }
 
     protected async extendConfiguration(configuration: IConfigurationExtend, environmentRead: IEnvironmentRead): Promise<void> {
