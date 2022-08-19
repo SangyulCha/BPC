@@ -1,7 +1,7 @@
 {
     "id": "422cf0e3-b444-4dff-95ad-70c4ca05c151",
     "version": "0.0.1",
-    "requiredApiVersion": "^1.4.0",
+    "requiredApiVersion": "^1.19.0",
     "iconFile": "icon.png",
     "author": {
         "name": "sangyul cha",
@@ -11,5 +11,8 @@
     "name": "BPC",
     "nameSlug": "bpc",
     "classFile": "BpcApp.ts",
-    "description": "connecting bot from botpress to rocket.chat"
+    "description": "connecting bot from botpress to rocket.chat",
+    "implements": [
+        "IPostMessageSent"
+    ]
 }
