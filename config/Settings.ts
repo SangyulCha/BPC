@@ -5,7 +5,8 @@ export enum AppSetting {
     BotpressServerUrl = 'botpress_server_url',
     BotpressEnableCallbacks = 'botpress_enable_callbacks',
     BotpressDefaultHandoverDepartment = 'botpress_target_handover_department',
-    BotpressBotId = 'botpress_bot_id'
+    BotpressBotId = 'botpress_bot_id',
+    BotpressReplyInThread = 'botpress_reply_in_thread'
 }
 
 export const settings: Array<ISetting> = [
@@ -33,5 +34,13 @@ export const settings: Array<ISetting> = [
         packageValue: '',
         i18nLabel: 'botpress_server_url',
         required: false,
+    },
+    {
+        id: AppSetting.BotpressReplyInThread,
+        public: true,
+        type: SettingType.BOOLEAN,
+        packageValue: false,
+        i18nLabel: 'botpress_reply_in_thread',
+        required: true
     },
 ];
