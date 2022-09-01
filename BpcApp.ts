@@ -8,19 +8,28 @@ import {
     IModify,
     IPersistence,
     IRead,
+    IRoomRead,
+    ISettingsExtend
 } from '@rocket.chat/apps-engine/definition/accessors';
 import { App } from '@rocket.chat/apps-engine/definition/App';
 import { IAppInfo } from '@rocket.chat/apps-engine/definition/metadata';
 import { IMessage, IMessageAttachment, IPostMessageSent } from '@rocket.chat/apps-engine/definition/messages';
 import { AppSetting, settings } from './config/Settings';
-import { IApp } from '@rocket.chat/apps-engine/definition/IApp';
-import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
+import { IApp } from '@rocket.chat/apps-engine/definition/IApp'; import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
 import { getAppSettingValue } from './lib/Setting';
 import { createHttpRequest } from './lib/Http';
 
 export class BpcApp extends App implements IPostMessageSent {
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
         super(info, logger, accessors);
+    }
+
+    private async isMultiUser(room: IRoom, read: IRead) {
+        const users = await read.getRoomReader().getMembers(room.id);
+        if (users.length < 3) {
+            return false;
+        }
+        return true;
     }
 
     public async createMessage(app: IApp, read: IRead, modify: IModify, message, room: IRoom, threadId: string | undefined, bot: string) {
@@ -32,7 +41,7 @@ export class BpcApp extends App implements IPostMessageSent {
         const replyInThread = await getAppSettingValue(read, AppSetting.BotpressReplyInThread);
         if (threadId && replyInThread) {
             msg.setThreadId(threadId);
-        };
+        }
 
         const { text, attachment, blocks } = message;
 
@@ -50,7 +59,7 @@ export class BpcApp extends App implements IPostMessageSent {
             msg.addBlocks(blocks);
         }
 
-        return new Promise(async (resolve) => {
+        return new Promise(resolve => {
             modify.getCreator().finish(msg)
                 .then((result) => resolve(result))
                 .catch((error) => console.error(error));
@@ -82,7 +91,7 @@ export class BpcApp extends App implements IPostMessageSent {
         this.getLogger().info(`this is notifiedId: ${notifiedId}`);
         const isNotified = message.text?.includes(notifiedId);
         this.getLogger().info(`is Notified? : ${isNotified}`);
-        //If "Reply In Thread" option is selected, then the bot should only respond when it is mentioned  
+        //If "Reply In Thread" option is selected, then the bot should only respond when it is mentioned
         if (replyInThread) {
             if (!isNotified && !message.threadId) {
                 return;
@@ -104,7 +113,7 @@ export class BpcApp extends App implements IPostMessageSent {
             { text },
         );
 
-        const botWebhookUrl: string = `${botUrl}/api/v1/bots/${botId}/converse/${replyId}`;
+        const botWebhookUrl = `${botUrl}/api/v1/bots/${botId}/converse/${replyId}`;
         const { data } = await http.post(botWebhookUrl, httpRequestContent);
         if (!data.responses) {
             return;

@@ -6,5 +6,7 @@
     "botpress_hide_quick_replies": "Hide quick replies",
     "botpress_bot_id": "Botpress bot id",
     "botpress_default_handover_department": "Default handover department",
-    "botpress_reply_in_thread": "Enable Bot Reply In Thread"
+    "botpress_reply_in_thread": "Enable Bot Reply In Thread",
+    "botpress_bot_settings": "Bot ",
+    "number_of_bots": "Number of bots"
 }
