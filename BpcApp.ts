@@ -8,8 +8,6 @@ import {
     IModify,
     IPersistence,
     IRead,
-    IRoomRead,
-    ISettingsExtend
 } from '@rocket.chat/apps-engine/definition/accessors';
 import { App } from '@rocket.chat/apps-engine/definition/App';
 import { IAppInfo } from '@rocket.chat/apps-engine/definition/metadata';
@@ -18,6 +16,7 @@ import { AppSetting, settings } from './config/Settings';
 import { IApp } from '@rocket.chat/apps-engine/definition/IApp'; import { IRoom } from '@rocket.chat/apps-engine/definition/rooms';
 import { getAppSettingValue } from './lib/Setting';
 import { createHttpRequest } from './lib/Http';
+import { IBot } from './type/Bot';
 
 export class BpcApp extends App implements IPostMessageSent {
     constructor(info: IAppInfo, logger: ILogger, accessors: IAppAccessors) {
@@ -50,9 +49,9 @@ export class BpcApp extends App implements IPostMessageSent {
         }
 
         if (attachment) {
-            app.getLogger().info(`this is final Url of image = ${JSON.stringify(attachment.imageUrl)}`)
+            app.getLogger().debug(`this is final Url of image = ${JSON.stringify(attachment.imageUrl)}`)
             msg.addAttachment(attachment);
-            app.getLogger().info(`this is msg = ${JSON.stringify(msg)}`)
+            app.getLogger().debug(`this is msg = ${JSON.stringify(msg)}`)
         }
 
         if (blocks) {
@@ -68,29 +67,35 @@ export class BpcApp extends App implements IPostMessageSent {
 
     public async executePostMessageSent(message: IMessage, read: IRead, http: IHttp, persistence: IPersistence, modify: IModify): Promise<void> {
         const { text, room, sender, id, threadId } = message;
-        this.getLogger().info(`this is the roomid: ${room.id}`);
-        this.getLogger().info(`this is the messageId(=threadId): ${id}`);
-        this.getLogger().info(`this is the room type: ${JSON.stringify(room.type)}`);
+        this.getLogger().debug(`this is the roomid: ${room.id}`);
+        this.getLogger().debug(`this is the messageId(=threadId): ${id}`);
+        this.getLogger().debug(`this is the room type: ${JSON.stringify(room.type)}`);
         if (!text) {
             return;
         }
 
+        // let bot: Array<IBot>
+        // settings.forEach(async (setting) => {
+        //     const settingValue = await getAppSettingValue(read, setting.id);
+
+        // })
+
         const botUrl: string = await getAppSettingValue(read, AppSetting.BotpressServerUrl);
         const botId: string = await getAppSettingValue(read, AppSetting.BotpressBotId);
         const botUsername: string = await getAppSettingValue(read, AppSetting.BotpressBotUsername);
-        this.getLogger().info(`this is the bot name: ${botUsername}`);
-        this.getLogger().info(`this is the sender.username ${sender.username}`);
+        this.getLogger().debug(`this is the bot name: ${botUsername}`);
+        this.getLogger().debug(`this is the sender.username ${sender.username}`);
         if (sender.username === botUsername) {
             return;
         }
 
         const replyInThread: boolean = await getAppSettingValue(read, AppSetting.BotpressReplyInThread);
-        this.getLogger().info(`is RIT on? : ${replyInThread}`);
+        this.getLogger().debug(`is RIT on? : ${replyInThread}`);
 
         const notifiedId: string = "@" + botUsername;
-        this.getLogger().info(`this is notifiedId: ${notifiedId}`);
+        this.getLogger().debug(`this is notifiedId: ${notifiedId}`);
         const isNotified = message.text?.includes(notifiedId);
-        this.getLogger().info(`is Notified? : ${isNotified}`);
+        this.getLogger().debug(`is Notified? : ${isNotified}`);
         //If "Reply In Thread" option is selected, then the bot should only respond when it is mentioned
         if (replyInThread) {
             if (!isNotified && !message.threadId) {
