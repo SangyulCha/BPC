@@ -162,7 +162,7 @@ export class BpcApp extends App implements IPostMessageSent {
             { text },
         );
 
-        const botWebhookUrl = `${beingConnectedBot.url}/api/v1/bots/${beingConnectedBot.id}/converse/${beingConnectedBot.username}`;
+        const botWebhookUrl = `${beingConnectedBot.url}/api/v1/bots/${beingConnectedBot.id}/converse/${beingConnectedBot.username}${message.sender.id}`;
         const { data } = await http.post(botWebhookUrl, httpRequestContent);
         if (!data.responses) {
             return;
