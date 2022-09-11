@@ -31,16 +31,24 @@ export class BpcApp extends App implements IPostMessageSent {
         return true;
     }
 
+    private isIBotFilled(bot: IBot) {
+        if (bot.id !== '' && bot.username !== '' && bot.url !== '') {
+            return true;
+        }
+        return false;
+    }
+
+    private isNotified(message: IMessage, username: string) {
+        const notifiedName = "@" + username;
+        return message.text?.includes(notifiedName);
+    }
+
     public async createMessage(app: IApp, read: IRead, modify: IModify, message, room: IRoom, threadId: string | undefined, bot: string) {
         if (!message) {
             return;
         }
         const sender = await read.getUserReader().getByUsername(bot);
         const msg = modify.getCreator().startMessage().setRoom(room).setSender(sender);
-        const replyInThread = await getAppSettingValue(read, AppSetting.BotpressReplyInThread);
-        if (threadId && replyInThread) {
-            msg.setThreadId(threadId);
-        }
 
         const { text, attachment, blocks } = message;
 
@@ -70,69 +78,107 @@ export class BpcApp extends App implements IPostMessageSent {
         this.getLogger().debug(`this is the roomid: ${room.id}`);
         this.getLogger().debug(`this is the messageId(=threadId): ${id}`);
         this.getLogger().debug(`this is the room type: ${JSON.stringify(room.type)}`);
+
         if (!text) {
             return;
         }
 
-        // let bot: Array<IBot>
-        // settings.forEach(async (setting) => {
-        //     const settingValue = await getAppSettingValue(read, setting.id);
+        let bots = new Map();
+        let bot: IBot = {
+            id: '',
+            username: '',
+            url: '',
+            replyInThread: false
+        };
+        settings.forEach(async (setting) => {
+            const settingValue = await getAppSettingValue(read, setting.id);
 
-        // })
+            if (setting.id.includes(AppSetting.BotpressReplyInThread)) {
+                bot.replyInThread = settingValue;
+            }
 
-        const botUrl: string = await getAppSettingValue(read, AppSetting.BotpressServerUrl);
-        const botId: string = await getAppSettingValue(read, AppSetting.BotpressBotId);
-        const botUsername: string = await getAppSettingValue(read, AppSetting.BotpressBotUsername);
-        this.getLogger().debug(`this is the bot name: ${botUsername}`);
-        this.getLogger().debug(`this is the sender.username ${sender.username}`);
-        if (sender.username === botUsername) {
+            if (this.isIBotFilled(bot)) {
+                const botInstance: IBot = JSON.parse(JSON.stringify(bot));
+                bots.set(bot.username, botInstance);
+                this.getLogger().debug(`this is the hashmap about setted bots: ${[...bots.entries()]}`)
+                this.getLogger().debug(`saved bot data : ${JSON.stringify(bots.get(bot.username))}`);
+                this.getLogger().debug(`multibot1 : ${JSON.stringify(bots.get('multibot1'))}`);
+                this.getLogger().debug(`multibot2 : ${JSON.stringify(bots.get('multibot2'))}`);
+                this.getLogger().debug(`multibot3 : ${JSON.stringify(bots.get('multibot3'))}`);
+                bot.id = '';
+                bot.url = '';
+                bot.username = '';
+                bot.replyInThread = false;
+            }
+
+            if (setting.id.includes(AppSetting.BotpressBotUsername)) {
+                bot.username = settingValue;
+            }
+
+            if (setting.id.includes(AppSetting.BotpressServerUrl)) {
+                bot.url = settingValue;
+            }
+
+            if (setting.id.includes(AppSetting.BotpressBotId)) {
+                bot.id = settingValue;
+            }
+        })
+
+        this.getLogger().debug(`sender = bot? : ${bots.has(sender.username)}`);
+
+
+
+        let isGroupChat = await this.isMultiUser(room, read);
+        this.getLogger().debug(`is group chat? = ${isGroupChat}`);
+        let contactedBot: string | undefined = '';
+        if (isGroupChat) {
+            for (const [username] of bots) {
+                if (!this.isNotified(message, username)) {
+                    continue;
+                }
+                contactedBot = username;
+            }
+        } else {
+            const roomMember = await read.getRoomReader().getMembers(room.id);
+            const bot = roomMember.find(user => user.username !== sender.username);
+            contactedBot = bot?.username;
+        }
+
+        this.getLogger().debug(`this is contactedBot : ${contactedBot}`);
+
+        if (bots.has(sender.username)) {
             return;
         }
 
-        const replyInThread: boolean = await getAppSettingValue(read, AppSetting.BotpressReplyInThread);
-        this.getLogger().debug(`is RIT on? : ${replyInThread}`);
-
-        const notifiedId: string = "@" + botUsername;
-        this.getLogger().debug(`this is notifiedId: ${notifiedId}`);
-        const isNotified = message.text?.includes(notifiedId);
-        this.getLogger().debug(`is Notified? : ${isNotified}`);
-        //If "Reply In Thread" option is selected, then the bot should only respond when it is mentioned
-        if (replyInThread) {
-            if (!isNotified && !message.threadId) {
-                return;
-            }
+        if (contactedBot === '') {
+            return;
         }
 
-        let replyId = id;
+        const beingConnectedBot = bots.get(contactedBot);
 
-        if (!replyInThread) {
-            replyId = message.sender.id;
-        }
-
-        if (threadId) {
-            replyId = threadId;
-        }
-
+        this.getLogger().debug(`beingConnectedBot object = ${JSON.stringify(beingConnectedBot)}`);
         const httpRequestContent: IHttpRequest = createHttpRequest(
             { 'Content-Type': 'application/json' },
             { text },
         );
 
-        const botWebhookUrl = `${botUrl}/api/v1/bots/${botId}/converse/${replyId}`;
+        const botWebhookUrl = `${beingConnectedBot.url}/api/v1/bots/${beingConnectedBot.id}/converse/${beingConnectedBot.username}`;
         const { data } = await http.post(botWebhookUrl, httpRequestContent);
         if (!data.responses) {
             return;
         }
 
+        this.getLogger().debug(`data = ${JSON.stringify(data.responses)}`);
+
         data.responses.filter(response => response !== '{}').forEach(async (response) => {
             if (response.type == 'text') {
-                await this.createMessage(this, read, modify, { text: response.text }, room, id, botUsername);
+                await this.createMessage(this, read, modify, { text: response.text }, room, id, beingConnectedBot.username);
             }
             if (response.type == 'image') {
                 const imageAttachment = {
                     imageUrl: response.image
                 } as IMessageAttachment;
-                await this.createMessage(this, read, modify, { attachment: imageAttachment }, room, id, botUsername);
+                await this.createMessage(this, read, modify, { attachment: imageAttachment }, room, id, beingConnectedBot.username);
             }
         });
 

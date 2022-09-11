@@ -1,5 +1,6 @@
 export interface IBot {
     username: string,
     id: string,
-    url: string
+    url: string,
+    replyInThread: boolean
 }

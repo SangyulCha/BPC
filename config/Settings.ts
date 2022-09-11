@@ -19,7 +19,7 @@ export const settings: Array<ISetting> = createSettings(
 
 
 function createSettings(...ids: Array<AppSetting>): Array<ISetting> {
-    let settings: Array<ISetting> = [];
+    const settings: Array<ISetting> = [];
 
     for (let i = 0; i < 3; i++) {
         ids.forEach((id) => {
@@ -28,6 +28,7 @@ function createSettings(...ids: Array<AppSetting>): Array<ISetting> {
                 id,
                 id == AppSetting.BotpressReplyInThread ? false : '',
                 id == AppSetting.BotpressReplyInThread ? SettingType.BOOLEAN : SettingType.STRING,
+                id == AppSetting.BotpressReplyInThread ? true : false
             ))
         })
     }
@@ -35,14 +36,14 @@ function createSettings(...ids: Array<AppSetting>): Array<ISetting> {
     return settings;
 }
 
-function settingsTemplate(id: string, i18nLabel: string, packageValue: string | boolean, type: SettingType): ISetting {
+function settingsTemplate(id: string, i18nLabel: string, packageValue: string | boolean, type: SettingType, hidden: boolean): ISetting {
     return {
         id: id,
         public: true,
         type: type,
         packageValue: packageValue,
         section: AppSetting.BotpressBotSettings,
-        hidden: false,
+        hidden: hidden,
         required: true,
         i18nLabel: i18nLabel
     }
